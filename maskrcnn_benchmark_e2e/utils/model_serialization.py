@@ -84,11 +84,18 @@ def load_state_dict(model, loaded_state_dict, partial):
         model.load_state_dict(model_state_dict)
     else:
         partial_model_state_dict = OrderedDict()
-        for name, parameter in model_state_dict.items():
-            if name in loaded_state_dict.keys():
+        for name, parameter in loaded_state_dict.items():
+            if name in model_state_dict.keys():
                 partial_model_state_dict[name] = parameter
-                partial_model_state_dict[name].requries_grad = False
+                # partial_model_state_dict[name].requries_grad = False
             else:
                 print(f"unmatched parameter {name}")
+
+        for name, parameter in model_state_dict.items():
+            if name in loaded_state_dict.keys():
+                model_state_dict[name].requries_grad = False
+            else:
+                model_state_dict[name].requries_grad = True
+                
         model_state_dict.update(partial_model_state_dict)
-        model.load_state_dict(partial_model_state_dict)
+        model.load_state_dict(model_state_dict)
