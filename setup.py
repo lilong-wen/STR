@@ -58,7 +58,7 @@ def get_extensions():
 
 
 setup(
-    name="maskrcnn_benchmark",
+    name="maskrcnn_benchmark_e2e",
     version="0.1",
     author="fmassa",
     url="https://github.com/facebookresearch/maskrnn-benchmark",

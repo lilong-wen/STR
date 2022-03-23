@@ -3,7 +3,7 @@ __pycache__
 _ext
 *.pyc
 *.so
-maskrcnn_benchmark.egg-info/
+maskrcnn_benchmark_e2e.egg-info/
 build/
 dist/
 

@@ -3,11 +3,11 @@ import cv2
 import torch
 from torchvision import transforms as T
 
-from maskrcnn_benchmark.modeling.detector import build_detection_model
-from maskrcnn_benchmark.utils.checkpoint import DetectronCheckpointer
-from maskrcnn_benchmark.structures.image_list import to_image_list
-from maskrcnn_benchmark.config import cfg
-from maskrcnn_benchmark.utils.chars import getstr_grid, get_tight_rect
+from maskrcnn_benchmark_e2e.modeling.detector import build_detection_model
+from maskrcnn_benchmark_e2e.utils.checkpoint import DetectronCheckpointer
+from maskrcnn_benchmark_e2e.structures.image_list import to_image_list
+from maskrcnn_benchmark_e2e.config import cfg
+from maskrcnn_benchmark_e2e.utils.chars import getstr_grid, get_tight_rect
 
 from PIL import Image
 import numpy as np
