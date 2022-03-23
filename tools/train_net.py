@@ -30,6 +30,7 @@ try:
 except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
+os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"  
 
 def train(cfg, local_rank, distributed):
     model = build_detection_model(cfg)
