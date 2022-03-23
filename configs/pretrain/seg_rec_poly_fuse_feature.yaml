@@ -69,6 +69,9 @@ DATASETS:
   AUG: True
   IGNORE_DIFFICULT: True
   MAX_ROTATE_THETA: 90
+CHAR_DATA:
+  PATH: "./fontData/fontlist_good_8.5.14.txt"
+  CHAR_CLASSES: "_0123456789abcdefghijklmnopqrstuvwxyz"
 DATALOADER:
   SIZE_DIVISIBILITY: 32
   NUM_WORKERS: 4

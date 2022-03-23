@@ -88,6 +88,10 @@ _C.DATASETS.CROP_SIZE = (512, 512)
 _C.DATASETS.MAX_ROTATE_THETA = 30
 _C.DATASETS.FIX_ROTATE = False
 
+# char data
+_C.CHAR_DATA = CN()
+_C.CHAR_DATA.PATH = ""
+_C.CHAR_DATA.CHAR_CLASSES = ""
 # -----------------------------------------------------------------------------
 # DataLoader
 # -----------------------------------------------------------------------------
