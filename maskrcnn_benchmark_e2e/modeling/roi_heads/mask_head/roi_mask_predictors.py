@@ -1,9 +1,21 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 from maskrcnn_benchmark_e2e.layers import Conv2d, ConvTranspose2d
+import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .roi_seq_predictors import make_roi_seq_predictor
+# from .roi_seq_predictors import make_roi_seq_predictor
+from .feature_align import feature_align_for_x_and_target
+from .target_generator import WordImageGenerator
+from .matcher import MatchERT
+
+class BinaryCrossEntropyWithLogits(nn.Module):
+    def __init__(self):
+        super(BinaryCrossEntropyWithLogits, self).__init__()
+
+    def forward(self, logits, global_features, labels):
+        return F.binary_cross_entropy_with_logits(logits, labels, reduction='none')
+
 
 
 class MaskRCNNC4Predictor(nn.Module):
@@ -90,6 +102,11 @@ class SeqCharMaskRCNNC4Predictor(nn.Module):
         char_num_classes = cfg.MODEL.ROI_MASK_HEAD.CHAR_NUM_CLASSES
         dim_reduced = cfg.MODEL.ROI_MASK_HEAD.CONV_LAYERS[-1]
 
+        self.target_generator = WordImageGenerator(cfg.CHAR_DATA.PATH, 720, 32, 32)
+        self.feature_align_for_x_and_target = feature_align_for_x_and_target()
+        self.matcherERT = MatchERT()
+        self.class_loss = BinaryCrossEntropyWithLogits()        
+
         if cfg.MODEL.ROI_HEADS.USE_FPN:
             if cfg.MODEL.ROI_MASK_HEAD.MIX_OPTION == 'CAT':
                 num_inputs = dim_reduced + 1
@@ -107,7 +124,7 @@ class SeqCharMaskRCNNC4Predictor(nn.Module):
         if cfg.MODEL.CHAR_MASK_ON:
             self.mask_fcn_logits = Conv2d(dim_reduced, num_classes, 1, 1, 0)
             self.char_mask_fcn_logits = Conv2d(dim_reduced, char_num_classes, 1, 1, 0)
-            self.seq = make_roi_seq_predictor(cfg, dim_reduced)
+            # self.seq = make_roi_seq_predictor(cfg, dim_reduced)
         else:
             self.mask_fcn_logits = Conv2d(dim_reduced, num_classes, 1, 1, 0)
 
@@ -117,14 +134,33 @@ class SeqCharMaskRCNNC4Predictor(nn.Module):
             elif "weight" in name:
                 # Caffe2 implementation uses MSRAFill, which in fact
                 # corresponds to kaiming_normal_ in PyTorch
-                nn.init.kaiming_normal_(param, mode="fan_out", nonlinearity="relu")
+                if param.dim() > 1:
+                    nn.init.kaiming_normal_(param, mode="fan_out", nonlinearity="relu")
+                else:
+                    nn.init.normal(param)
 
     def forward(self, x, decoder_targets=None, word_targets=None):
+        x_origin = torch.clone(x)
         x = F.relu(self.conv5_mask(x))
+        
         if self.training:
-            loss_seq_decoder = self.seq(
-                x, decoder_targets=decoder_targets, word_targets=word_targets
-            )
+            word_targets_imgs =  torch.from_numpy(self.target_generator(decoder_targets)).float().to(decoder_targets.device)
+
+            # loss_seq_decoder = self.seq(
+            #     x, decoder_targets=decoder_targets, word_targets=word_targets
+            # )
+
+            word_targets_align, x_align_anchor = self.feature_align_for_x_and_target(word_targets_imgs, x_origin)
+            word_targets_positive = word_targets_align[0::2]
+            word_targets_negtive = word_targets_align[1::2]
+            p_logits = self.matcherERT(x_align_anchor, word_targets_positive)
+            n_logits = self.matcherERT(x_align_anchor, word_targets_negtive)
+            logits = torch.cat([p_logits, n_logits], 0)
+            bsize = logits.size(0)
+            labels = logits.new_ones(logits.size())
+            labels[(bsize//2):] = 0
+            loss_seq_decoder = self.class_loss(logits, None, labels).mean()
+
             return (
                 self.mask_fcn_logits(x),
                 self.char_mask_fcn_logits(x),
